@@ -1,0 +1,702 @@
+<!doctype html>
+<html>
+   <head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+      <title>Babylon.js sample code</title>
+      <!-- Babylon.js -->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.6.2/dat.gui.min.js"></script>
+      <script src="https://assets.babylonjs.com/generated/Assets.js"></script>
+      <script src="https://cdn.babylonjs.com/recast.js"></script>
+      <script src="https://cdn.babylonjs.com/ammo.js"></script>
+      <script src="https://cdn.babylonjs.com/havok/HavokPhysics_umd.js"></script>
+      <script src="https://cdn.babylonjs.com/cannon.js"></script>
+      <script src="https://cdn.babylonjs.com/Oimo.js"></script>
+      <script src="https://cdn.babylonjs.com/earcut.min.js"></script>
+      <script src="https://cdn.babylonjs.com/babylon.js"></script>
+      <script src="https://cdn.babylonjs.com/materialsLibrary/babylonjs.materials.min.js"></script>
+      <script src="https://cdn.babylonjs.com/proceduralTexturesLibrary/babylonjs.proceduralTextures.min.js"></script>
+      <script src="https://cdn.babylonjs.com/postProcessesLibrary/babylonjs.postProcess.min.js"></script>
+      <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.js"></script>
+      <script src="https://cdn.babylonjs.com/serializers/babylonjs.serializers.min.js"></script>
+      <script src="https://cdn.babylonjs.com/gui/babylon.gui.min.js"></script>
+      <script src="https://cdn.babylonjs.com/addons/babylonjs.addons.min.js"></script>
+      <script src="https://cdn.babylonjs.com/inspector/babylon.inspector.bundle.js"></script>
+      <style>
+         html,
+         body {
+         overflow: hidden;
+         width: 100%;
+         height: 100%;
+         margin: 0;
+         padding: 0;
+         }
+         #renderCanvas {
+         width: 100%;
+         height: 100%;
+         touch-action: none;
+         }
+         #canvasZone {
+         width: 100%;
+         height: 100%;
+         }
+      </style>
+   </head>
+   <body>
+      <div id="canvasZone">
+         <canvas id="renderCanvas"></canvas>
+      </div>
+      <script>
+         var canvas = document.getElementById("renderCanvas");
+         
+         var startRenderLoop = function (engine, canvas) {
+             engine.runRenderLoop(function () {
+                 if (sceneToRender && sceneToRender.activeCamera) {
+                     sceneToRender.render();
+                 }
+             });
+         }
+
+         var engine = null;
+         var scene = null;
+         var sceneToRender = null;
+         var createDefaultEngine = function() { return new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true,  disableWebGL2Support: false}); };
+         var createScene = function () {
+
+         if (!engine || !canvas) {
+         console.error("Engine or canvas is not defined.");
+         return;
+         }
+
+         var scene = new BABYLON.Scene(engine);
+         engine.setHardwareScalingLevel(1.0);
+         engine.fps = 60;
+         engine.limitFPS = 60;
+         // Enable Physics
+         var gravityVector = new BABYLON.Vector3(0, -9.81, 0);
+         var physicsPlugin = new BABYLON.OimoJSPlugin();
+         scene.enablePhysics(gravityVector, physicsPlugin);
+
+         // FPS display
+         const fpsDisplay = document.createElement("div");
+         fpsDisplay.style = `
+         position: absolute;
+         top: 50px;
+         left: 10px;
+         color: white;
+         font-size: 16px;
+         background: rgba(0,0,0,0.5);
+         padding: 5px;
+         border-radius: 3px;
+         `;
+         document.body.appendChild(fpsDisplay);
+
+         scene.registerBeforeRender(() => {
+         fpsDisplay.innerHTML = `FPS: ${Math.round(engine.getFps())}`;
+         });
+
+         // Camera setup
+         // Create camera
+         // var camera = new BABYLON.ArcRotateCamera("camera", Math.PI / 2, Math.PI / 4, 15, BABYLON.Vector3.Zero(), scene);
+         var camera = new BABYLON.ArcRotateCamera("camera", Math.PI / 2, 0.78 , 15, BABYLON.Vector3.Zero(), scene);
+         //camera.attachControl(canvas, true);
+         camera.wheelPrecision = 50;
+         camera.lowerRadiusLimit = 3;
+         camera.upperRadiusLimit = 50;
+         camera.minZ = 0.1;
+
+         // Create GUI for camera controls
+         var advancedTexture = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
+
+         // Create a stack panel for organizing controls
+         // var panel = new BABYLON.GUI.StackPanel();
+         // panel.width = "200px";
+         // panel.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+         // panel.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+         // panel.top = "10px";
+         // panel.right = "10px";
+         // advancedTexture.addControl(panel);
+
+         // Create sliders for camera position
+         // var createSlider = function(name, property, min, max) {
+         //     var header = new BABYLON.GUI.TextBlock();
+         //     header.text = name;
+         //     header.height = "30px";
+         //     header.color = "white";
+         //     panel.addControl(header);
+
+         //     var slider = new BABYLON.GUI.Slider();
+         //     slider.minimum = min;
+         //     slider.maximum = max;
+         //     slider.value = camera[property];
+         //     slider.height = "20px";
+         //     slider.width = "150px";
+         //     slider.color = "white";
+         //     slider.background = "grey";
+         //     slider.onValueChangedObservable.add(function(value) {
+         //         camera[property] = value;
+         //     });
+         //     panel.addControl(slider);
+
+         //     var input = new BABYLON.GUI.InputText();
+         //     input.width = "50px";
+         //     input.height = "20px";
+         //     input.color = "white";
+         //     input.background = "grey";
+         //     input.text = slider.value.toString();
+         //     input.onTextChangedObservable.add(function(text) {
+         //         slider.value = parseFloat(text);
+         //         camera[property] = parseFloat(text);
+         //     });
+         //     panel.addControl(input);
+         // };
+
+         // // Add sliders for different camera properties
+         // createSlider("Alpha", "alpha", -Math.PI * 2, Math.PI * 2);
+         // createSlider("Beta", "beta", 0, Math.PI);
+         // createSlider("Radius", "radius", camera.lowerRadiusLimit, camera.upperRadiusLimit);
+
+         // // Add reset button
+         // var resetButton = BABYLON.GUI.Button.CreateSimpleButton("reset", "Reset Camera");
+         // resetButton.width = "150px";
+         // resetButton.height = "30px";
+         // resetButton.color = "white";
+         // resetButton.background = "grey";
+         // resetButton.onPointerUpObservable.add(function() {
+         //     camera.alpha = Math.PI / 2;
+         //     camera.beta = Math.PI / 2;
+         //     camera.radius = 20;
+         // });
+         // panel.addControl(resetButton);
+
+         // Lights
+         // Create lights
+         // Main hemispheric light for ambient illumination
+         var light = new BABYLON.HemisphericLight("hemisphericLight", new BABYLON.Vector3(0, 1, 0), scene);
+         light.intensity = 0.7;
+         light.groundColor = new BABYLON.Color3(0.2, 0.2, 0.25); // Slight blue tint for sky reflection
+         light.specular = new BABYLON.Color3(0.1, 0.1, 0.1); // Reduce specular reflection
+
+         // Primary directional light (sun-like)
+         var directionalLight = new BABYLON.DirectionalLight("sunLight", new BABYLON.Vector3(-1, -2, -1), scene);
+         directionalLight.intensity = 1.2;
+         directionalLight.shadowEnabled = true; // Enable shadows
+         directionalLight.shadowMinZ = 1;
+         directionalLight.shadowMaxZ = 100;
+
+         // Configure shadow generator for the directional light
+         var shadowGenerator = new BABYLON.ShadowGenerator(1024, directionalLight);
+         shadowGenerator.useBlurExponentialShadowMap = true;
+         shadowGenerator.blurScale = 2;
+         shadowGenerator.setDarkness(0.3);
+
+         // Additional fill light for better depth
+         var fillLight = new BABYLON.DirectionalLight("fillLight", new BABYLON.Vector3(1, -1, 1), scene);
+         fillLight.intensity = 0.3;
+         fillLight.specular = new BABYLON.Color3(0.1, 0.1, 0.1);
+
+         // Subtle rim light for edge definition
+         var rimLight = new BABYLON.DirectionalLight("rimLight", new BABYLON.Vector3(0, 0, -1), scene);
+         rimLight.intensity = 0.2;
+         rimLight.specular = new BABYLON.Color3(0.2, 0.2, 0.2);
+
+         // Create GUI for light controls
+         // var lightPanel = new BABYLON.GUI.StackPanel();
+         // lightPanel.width = "200px";
+         // lightPanel.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+         // lightPanel.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+         // lightPanel.top = "10px";
+         // lightPanel.left = "10px";
+         // advancedTexture.addControl(lightPanel);
+
+         // // Header for Hemispheric Light
+         // var hemiHeader = new BABYLON.GUI.TextBlock();
+         // hemiHeader.text = "Hemispheric Light";
+         // hemiHeader.height = "30px";
+         // hemiHeader.color = "white";
+         // lightPanel.addControl(hemiHeader);
+
+         // // Intensity slider for Hemispheric Light
+         // var hemiIntensitySlider = new BABYLON.GUI.Slider();
+         // hemiIntensitySlider.minimum = 0;
+         // hemiIntensitySlider.maximum = 5;
+         // hemiIntensitySlider.value = light.intensity;
+         // hemiIntensitySlider.height = "20px";
+         // hemiIntensitySlider.width = "150px";
+         // hemiIntensitySlider.color = "white";
+         // hemiIntensitySlider.background = "grey";
+         // hemiIntensitySlider.onValueChangedObservable.add(function(value) {
+         //     light.intensity = value;
+         // });
+         // lightPanel.addControl(hemiIntensitySlider);
+
+         // // Header for Directional Light
+         // var dirHeader = new BABYLON.GUI.TextBlock();
+         // dirHeader.text = "Directional Light";
+         // dirHeader.height = "30px";
+         // dirHeader.color = "white";
+         // lightPanel.addControl(dirHeader);
+
+         // Intensity slider for Directional Light
+         // var dirIntensitySlider = new BABYLON.GUI.Slider();
+         // dirIntensitySlider.minimum = 0;
+         // dirIntensitySlider.maximum = 5;
+         // dirIntensitySlider.value = directionalLight.intensity;
+         // dirIntensitySlider.height = "20px";
+         // dirIntensitySlider.width = "150px";
+         // dirIntensitySlider.color = "white";
+         // dirIntensitySlider.background = "grey";
+         // dirIntensitySlider.onValueChangedObservable.add(function(value) {
+         //     directionalLight.intensity = value;
+         // });
+         // lightPanel.addControl(dirIntensitySlider);
+
+         // // Direction controls for Directional Light
+         // ["X", "Y", "Z"].forEach(function(axis) {
+         //     var header = new BABYLON.GUI.TextBlock();
+         //     header.text = "Direction " + axis;
+         //     header.height = "30px";
+         //     header.color = "white";
+         //     lightPanel.addControl(header);
+
+         //     var slider = new BABYLON.GUI.Slider();
+         //     slider.minimum = -5;
+         //     slider.maximum = 5;
+         //     slider.value = directionalLight.direction[axis.toLowerCase()];
+         //     slider.height = "20px";
+         //     slider.width = "150px";
+         //     slider.color = "white";
+         //     slider.background = "grey";
+         //     slider.onValueChangedObservable.add(function(value) {
+         //         directionalLight.direction[axis.toLowerCase()] = value;
+         //     });
+         //     lightPanel.addControl(slider);
+         // });
+
+         // Skybox
+         var skybox = BABYLON.MeshBuilder.CreateBox("skyBox", { size: 1000 }, scene);
+         var skyboxMaterial = new BABYLON.StandardMaterial("skyBoxMaterial", scene);
+         skyboxMaterial.backFaceCulling = false;
+         skyboxMaterial.reflectionTexture = new BABYLON.CubeTexture(
+         "https://raw.githubusercontent.com/IamSudhir-Kumar/models/main/",
+         scene,
+         ["px.png", "py.png", "pz.png", "nx.png", "ny.png", "nz.png"]
+         );
+         skyboxMaterial.reflectionTexture.coordinatesMode = BABYLON.Texture.SKYBOX_MODE;
+         skyboxMaterial.diffuseColor = BABYLON.Color3.Black();
+         skyboxMaterial.specularColor = BABYLON.Color3.Black();
+         skybox.material = skyboxMaterial;
+         
+         // Earth
+         var sphere = BABYLON.MeshBuilder.CreateSphere("terrainSphere", { diameter: 10, segments: 64 }, scene);
+         sphere.position.y = -2;
+         sphere.position.z = 7;
+         var terrainMaterial = new BABYLON.StandardMaterial("terrainMaterial", scene);
+         terrainMaterial.diffuseTexture = new BABYLON.Texture("https://www.babylonjs-playground.com/textures/earth.jpg", scene);
+         terrainMaterial.roughness = 0.8; // Increased roughness (value between 0 and 1)
+         terrainMaterial.metallicRoughness = 0.5; // Additional roughness property
+         // Set the material for the sphere
+         sphere.material = terrainMaterial;
+
+         // Create GUI for sphere position controls
+         // var spherePanel = new BABYLON.GUI.StackPanel();
+         // spherePanel.width = "200px";
+         // spherePanel.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+         // spherePanel.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
+         // spherePanel.bottom = "10px";
+         // spherePanel.right = "10px";
+         // advancedTexture.addControl(spherePanel);
+
+         // Header for sphere controls
+         // var sphereHeader = new BABYLON.GUI.TextBlock();
+         // sphereHeader.text = "Sphere Position";
+         // sphereHeader.height = "30px";
+         // sphereHeader.color = "white";
+         // spherePanel.addControl(sphereHeader);
+
+         // Create position sliders for each axis
+         // ["X", "Y", "Z"].forEach(function(axis) {
+         //     var header = new BABYLON.GUI.TextBlock();
+         //     header.text = "Position " + axis;
+         //     header.height = "30px";
+         //     header.color = "white";
+         //     spherePanel.addControl(header);
+
+         //     var slider = new BABYLON.GUI.Slider();
+         //     slider.minimum = -10;
+         //     slider.maximum = 10;
+         //     slider.value = sphere.position[axis.toLowerCase()];
+         //     slider.height = "20px";
+         //     slider.width = "150px";
+         //     slider.color = "white";
+         //     slider.background = "grey";
+         //     slider.onValueChangedObservable.add(function(value) {
+         //         sphere.position[axis.toLowerCase()] = value;
+         //     });
+         //     spherePanel.addControl(slider);
+
+         //     // Add text input for precise control
+         //     var input = new BABYLON.GUI.InputText();
+         //     input.width = "60px";
+         //     input.height = "20px";
+         //     input.text = sphere.position[axis.toLowerCase()].toString();
+         //     input.color = "white";
+         //     input.background = "grey";
+         //     input.onTextChangedObservable.add(function(value) {
+         //         let num = parseFloat(value);
+         //         if (!isNaN(num)) {
+         //             sphere.position[axis.toLowerCase()] = num;
+         //             slider.value = num;
+         //         }
+         //     });
+         //     spherePanel.addControl(input);
+         // });
+
+         // // Reset button for sphere position
+         // var resetSphereButton = BABYLON.GUI.Button.CreateSimpleButton("resetSphere", "Reset Sphere Position");
+         // resetSphereButton.width = "150px";
+         // resetSphereButton.height = "30px";
+         // resetSphereButton.color = "white";
+         // resetSphereButton.background = "grey";
+         // resetSphereButton.onPointerUpObservable.add(function() {
+         //     sphere.position = new BABYLON.Vector3(0, 0, 0);
+         // });
+         // spherePanel.addControl(resetSphereButton);
+
+         // Add Physics Impostor to Earth (Static)
+         //  sphere.physicsImpostor = new BABYLON.PhysicsImpostor(
+         //     sphere,
+         //     BABYLON.PhysicsImpostor.SphereImpostor,
+         //     { mass: 0, restitution: 0.9 },
+         //     scene
+         // );
+
+
+         // Sun
+         var sun = BABYLON.MeshBuilder.CreateSphere("sunSphere", { diameter: 20, segments: 64 }, scene);
+         sun.position = new BABYLON.Vector3(50, -50, 50);
+
+         var sunMaterial = new BABYLON.StandardMaterial("sunMaterial", scene);
+         sunMaterial.emissiveColor = new BABYLON.Color3(1, 1, 0);
+         sun.material = sunMaterial;
+
+         var sunLight = new BABYLON.DirectionalLight("sunLight", new BABYLON.Vector3(-1, -1, 1), scene);
+         sunLight.position = sun.position;
+         sunLight.intensity = 1.5;
+
+         // Character
+         let character, idleAnim, runAnim, jumpAnim, slideAnim;
+         let isJumping = false, isSliding = false, isGameOver = false, isRunning = false;
+
+         BABYLON.SceneLoader.ImportMesh(
+         "",
+         "https://raw.githubusercontent.com/IamSudhir-Kumar/models/main/",
+         "Girl01.glb",
+         scene,
+         function (meshes, particleSystems, skeletons, animationGroups) {
+         character = meshes[0];
+         character.position = new BABYLON.Vector3(0, sphere.position.y+5,sphere.position.z+0.2);
+         character.scaling = new BABYLON.Vector3(1, 1, 1);
+
+         // Add Physics Impostor to Character
+         // character.physicsImpostor = new BABYLON.PhysicsImpostor(
+         //     character,
+         //     BABYLON.PhysicsImpostor.BoxImpostor,
+         //     { mass: 1, restitution: 0.2 },
+         //     scene
+         //);
+
+
+         // Find animations
+         idleAnim = animationGroups.find((anim) => anim.name.toLowerCase().includes("idle"));
+         runAnim = animationGroups.find((anim) => anim.name.toLowerCase().includes("run"));
+         jumpAnim = animationGroups.find((anim) => anim.name.includes("Jump"));
+         slideAnim = animationGroups.find((anim) => anim.name.includes("Slide"));
+
+
+         if (jumpAnim) {
+         jumpAnim.loopAnimation = false;
+         jumpAnim.onAnimationEndObservable.add(() => {
+         isJumping = false;
+         if (isRunning && !isGameOver) {
+         runAnim.start(true);
+         } else {
+         idleAnim.start(true);
+         }
+         });
+         }
+
+         if (slideAnim) {
+         slideAnim.loopAnimation = false;
+         slideAnim.onAnimationEndObservable.add(() => {
+         isSliding = false;
+         if (isRunning && !isGameOver) {
+         runAnim.start(true);
+         } else {
+         idleAnim.start(true);
+         }
+         });
+         }
+
+
+         if (idleAnim) idleAnim.start(true);
+         }
+
+                                       );
+
+         // Obstacles
+         let obstacles = [];
+         const MAX_OBSTACLES = 10;
+         const obstacleSpeed = 0.005;
+
+         function spawnObstacle() {
+         const size = Math.random() * 1 ;
+         const angle = Math.random() * Math.PI * 2;
+         const isHighObstacle = Math.random() > 0.5;
+       //const isHighObstacle = 0.6;
+         const radius = 5 + (isHighObstacle ? 1 : 0);
+
+         const obstacle = BABYLON.MeshBuilder.CreateBox("obstacle", { width: size, height: size, depth: size }, scene);
+         obstacle.parent = sphere;
+         obstacle.position = new BABYLON.Vector3(0, Math.sin(angle) * radius, Math.cos(angle) * radius);
+         obstacle.rotation.y = angle;
+
+         // Add Physics Impostor to Obstacle
+         obstacle.physicsImpostor = new BABYLON.PhysicsImpostor(
+         obstacle,
+         BABYLON.PhysicsImpostor.BoxImpostor,
+         { mass: 0, restitution: 0.1 },
+         scene
+         );
+
+
+         obstacle.isHighObstacle = isHighObstacle;
+         obstacles.push(obstacle);
+
+         if (obstacles.length > MAX_OBSTACLES) {
+         const oldestObstacle = obstacles.shift();
+         oldestObstacle.dispose();
+         }
+         }
+
+         setInterval(() => {
+         if (!isGameOver) spawnObstacle();
+         }, 2000);
+
+         // Collision Detection with Physics
+         //  scene.registerBeforeRender(() => {
+         //     if (character && character.physicsImpostor) {
+         //         obstacles.forEach((obstacle) => {
+         //             if (
+         //                 obstacle.physicsImpostor &&
+         //                 character.physicsImpostor.intersectsMesh(obstacle)
+         //             ) {
+         //                 isGameOver = true;
+         //                 showRetryScreen();
+         //             }
+         //         });
+         //     }
+         // });
+         scene.registerBeforeRender(() => {
+         if (character && obstacles.length > 0) {
+         obstacles.forEach((obstacle) => {
+         // Check if the character intersects with the obstacle
+         if (character.intersectsMesh(obstacle, false)) {
+         isGameOver = true;
+         showRetryScreen();
+         }
+         });
+         }
+         });
+
+
+         function jump() {
+         if (isJumping || !character || !jumpAnim || isSliding) return;
+         isJumping = true;
+
+         stopAllAnimations();
+         jumpAnim.start(false, 1.0, jumpAnim.from, jumpAnim.to, false, () => {
+         isJumping = false;
+         if (runAnim) runAnim.start(true);
+         });
+         }
+
+         function slide() {
+         if (isSliding || !character || !slideAnim || isJumping) return;
+         isSliding = true;
+
+         stopAllAnimations();
+         slideAnim.start(false, 1.0, slideAnim.from, slideAnim.to, false, () => {
+         isSliding = false;
+         if (runAnim) runAnim.start(true);
+         });
+         }
+
+         function stopAllAnimations() {
+         if (runAnim) runAnim.stop();
+         if (jumpAnim) jumpAnim.stop();
+         if (slideAnim) slideAnim.stop();
+         if (idleAnim) idleAnim.stop();
+         }
+
+         window.addEventListener("keydown", (event) => {
+         if (event.code === "ArrowUp") jump();
+         if (event.code === "ArrowDown") slide();
+         });
+
+         window.addEventListener("touchstart", (event) => {
+         if (event.touches.length === 1) jump();
+         if (event.touches.length === 2) slide();
+         });
+
+         let score = 0;
+         const scoreText = document.createElement("div");
+         scoreText.style = "position: absolute; top: 10px; left: 10px; color: white; font-size: 20px;";
+         scoreText.innerText = `Score: ${score}`;
+         document.body.appendChild(scoreText);
+
+         scene.onBeforeRenderObservable.add(() => {
+         if (isGameOver) return;
+
+         sphere.rotate(BABYLON.Axis.X, 0.005, BABYLON.Space.LOCAL);
+         skybox.rotation.y += 0.0005;
+         sun.position.x = 50 * Math.cos(performance.now() * 0.00005);
+         sun.position.z = 50 * Math.sin(performance.now() * 0.00005);
+         obstacles.forEach((obstacle, index) => {
+         obstacle.rotation.y += obstacleSpeed;
+
+         if (character.intersectsMesh(obstacle, false)) {
+
+         if (
+         (obstacle.isHighObstacle && !isSliding) ||
+         (!obstacle.isHighObstacle && !isJumping)
+         ) {
+         isGameOver = true;
+         showRetryScreen();
+         }
+         }
+
+         if (obstacle.position.z < -20) {
+         obstacles.splice(index, 1);
+         obstacle.dispose();
+         score++;
+         scoreText.innerText = `Score: ${score}`;
+         }
+         });
+
+         //sphere.rotation.x += 0.005;
+         skybox.rotation.y += 0.0005;
+         sun.position.x = 50 * Math.cos(performance.now() * 0.00005);
+         sun.position.z = 50 * Math.sin(performance.now() * 0.00005);
+         sunLight.direction = BABYLON.Vector3.Normalize(sphere.position.subtract(sun.position));
+         });
+
+         function resetGame() {
+         isGameOver = false;
+         score = 0;
+         scoreText.innerText = `Score: ${score}`;
+         obstacles.forEach((obstacle) => obstacle.dispose());
+         obstacles = [];
+         isRunning = false;
+
+         stopAllAnimations();
+         if (idleAnim) idleAnim.start(true);
+         createOverlay("Welcome to the Game!", "Start", startGame, "startOverlay");
+         }
+
+         function createOverlay(message, buttonText, buttonCallback, id) {
+         let existingOverlay = document.getElementById(id);
+         if (existingOverlay) return;
+
+         const overlay = document.createElement("div");
+         overlay.id = id;
+         overlay.style = `
+         position: absolute;
+         top: 0;
+         left: 0;
+         width: 100%;
+         height: 100%;
+         background: black;
+         background: rgba(255, 255, 255, 0.7);
+         display: flex;
+         flex-direction: column;
+         justify-content: center;
+         align-items: center;
+         color: white;
+         color: black;
+         font-size: 24px;
+         z-index: 1000;
+         `;
+
+         const messageDiv = document.createElement("div");
+         messageDiv.innerText = message;
+         messageDiv.style = "margin-bottom: 20px;";
+
+         const button = document.createElement("button");
+         button.innerText = buttonText;
+         button.style = "font-size: 20px; padding: 10px 20px; cursor: pointer;";
+         button.onclick = () => {
+         overlay.remove();
+         buttonCallback();
+         };
+         button.style = `
+         font-size: 20px;
+         padding: 10px 20px;
+         cursor: pointer;
+         border: none;
+         background: #f6f6f6;
+         box-shadow: rgba(0, 0, 0, 0.15) 0px 0px 3px;
+         `;
+         button.onclick = () => {
+         overlay.remove();
+         buttonCallback();
+         };
+
+         overlay.appendChild(messageDiv);
+         overlay.appendChild(button);
+         document.body.appendChild(overlay);
+         }
+
+         function startGame() {
+         if (!character || isRunning) return;
+         isRunning = true;
+
+         stopAllAnimations();
+         if (runAnim) runAnim.start(true);
+         }
+
+         createOverlay("Welcome to the Game!", "Start", startGame, "startOverlay");
+
+         function showRetryScreen() {
+         createOverlay("Game Over! Try Again?", "Retry", resetGame, "retryOverlay");
+         }
+
+         return scene;
+         };
+
+         window.initFunction = async function() {
+
+
+
+         var asyncEngineCreation = async function() {
+             try {
+             return createDefaultEngine();
+             } catch(e) {
+             console.log("the available createEngine function failed. Creating the default engine instead");
+             return createDefaultEngine();
+             }
+         }
+
+         window.engine = await asyncEngineCreation();
+         if (!engine) throw 'engine should not be null.';
+         startRenderLoop(engine, canvas);
+         window.scene = createScene();};
+         initFunction().then(() => {sceneToRender = scene
+         });
+
+
+         window.addEventListener("resize", function () {
+             engine.resize();
+         });
+      </script>
+   </body>
+</html>
